@@ -244,6 +244,7 @@ mc-sandbox/
   ```bash
   npm test           # 或单独运行 node tests/pack4.mjs
   npm run shots      # 重新生成 screenshots/
+  npm run smoke      # 线上 Pages 部署验收（可传 URL）
   ```
   测试文件位于 `tests/`，公共启动逻辑在 `tests/helpers/browser.mjs`。
 

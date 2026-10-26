@@ -11,7 +11,8 @@
   "scripts": {
     "build": "node tests/build-single.mjs",
     "test": "node tests/functional2.mjs && node tests/ui-flow.mjs && node tests/acceptance.mjs && node tests/pack1.mjs && node tests/pack2.mjs && node tests/pack3.mjs && node tests/pack4.mjs && node tests/audio-env.mjs",
-    "shots": "node tests/final-shots.mjs"
+    "shots": "node tests/final-shots.mjs",
+    "smoke": "node tests/deploy-smoke.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^23.11.1"
