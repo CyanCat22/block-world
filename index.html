@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方块世界 · 沙盒生存</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game-root"></div>
+
+<!-- ========== HUD ========== -->
+<div id="hud" class="hidden">
+  <div id="crosshair"></div>
+
+  <div id="topbar">
+    <div id="clock"><span id="clock-icon">☀</span> <span id="clock-text">第 1 天 06:00</span></div>
+    <div id="weather-text">晴朗</div>
+  </div>
+
+  <div id="minimap">
+    <canvas id="minimap-canvas" width="184" height="184"></canvas>
+    <div id="minimap-label"><span id="minimap-dir">村庄 --</span></div>
+  </div>
+
+  <div id="debug" class="hidden"></div>
+
+  <div id="status">
+    <div id="hearts" class="stat-row"></div>
+    <div id="hunger" class="stat-row"></div>
+  </div>
+
+  <div id="hotbar"></div>
+  <div id="item-name"></div>
+
+  <div id="hint">
+    <span>WASD 移动</span><span>空格 跳跃</span><span>左键 挖掘 / 攻击</span><span>右键 放置 / 交易</span>
+    <span>E 背包</span><span>H 帮助</span><span>F3 调试</span>
+  </div>
+
+  <div id="toast-wrap"></div>
+  <div id="bubble-layer"></div>
+  <div id="damage-flash"></div>
+  <div id="underwater-tint" class="hidden"></div>
+</div>
+
+<!-- ========== 开始界面 ========== -->
+<div id="start-screen">
+  <div class="title-block">
+    <div class="title-cn">方块世界</div>
+    <div class="title-sub">SANDBOX · 生存 · 建造 · 村民</div>
+  </div>
+  <div class="start-panel">
+    <div class="start-desc">
+      <p>你在一座村庄旁醒来。这里有会耕作、交易、日落归家的村民，也有昼夜交替、风雨雷电、草木生长与野兽出没。</p>
+      <p class="dim">挖方块、造庇护所、熬过第一夜，和村民做朋友。</p>
+    </div>
+    <div class="controls">
+      <div><b>W A S D</b><span>移动</span></div>
+      <div><b>空格</b><span>跳跃 / 水中上浮</span></div>
+      <div><b>Shift</b><span>疾跑</span></div>
+      <div><b>鼠标左键</b><span>挖掘方块 / 攻击</span></div>
+      <div><b>鼠标右键</b><span>放置方块 / 与村民交易 / 进食</span></div>
+      <div><b>滚轮 / 1-9</b><span>切换快捷栏</span></div>
+      <div><b>E</b><span>背包与合成</span></div>
+      <div><b>H</b><span>帮助与规则</span></div>
+    </div>
+    <div class="save-slots" id="save-slots"></div>
+    <div class="start-buttons">
+      <button id="btn-start" class="btn primary">开始新的世界</button>
+      <button id="btn-continue" class="btn hidden">读取选中存档</button>
+    </div>
+    <div class="seed-row">
+      <label for="seed-input">世界种子（留空则随机）</label>
+      <input id="seed-input" type="text" maxlength="20" placeholder="例如 2026">
+    </div>
+    <div class="start-foot">提示：先撸树造工具，天黑前盖好屋。村民不会主动攻击，但别随便打他们。</div>
+  </div>
+</div>
+
+<!-- ========== 暂停界面 ========== -->
+<div id="pause-screen" class="hidden">
+  <div class="pause-panel">
+    <h2>游戏暂停</h2>
+    <button id="btn-resume" class="btn primary">继续游戏</button>
+    <button id="btn-save" class="btn">保存世界</button>
+    <button id="btn-settings" class="btn">设置</button>
+    <button id="btn-help" class="btn">查看帮助</button>
+    <div class="pause-save-row">
+      <button id="btn-export" class="btn">导出存档</button>
+      <button id="btn-import" class="btn">导入存档</button>
+      <input id="import-file" type="file" accept=".json,application/json" hidden>
+    </div>
+    <button id="btn-exit" class="btn danger">返回标题</button>
+  </div>
+</div>
+
+<!-- ========== 背包 / 合成 ========== -->
+<div id="inventory-screen" class="modal hidden">
+  <div class="modal-panel inv-panel">
+    <div class="modal-head">
+      <h2>背包</h2>
+      <button class="modal-close" data-close="inventory-screen">✕</button>
+    </div>
+    <div class="inv-body">
+      <div class="inv-left">
+        <h3>物品</h3>
+        <div id="inv-grid" class="item-grid"></div>
+        <div class="hotbar-label">点击物品可与当前快捷栏槽位交换</div>
+      </div>
+      <div class="inv-right">
+        <h3>合成</h3>
+        <div id="recipe-list" class="recipe-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 村民交易 ========== -->
+<div id="trade-screen" class="modal hidden">
+  <div class="modal-panel trade-panel">
+    <div class="modal-head">
+      <h2 id="trade-title">村民交易</h2>
+      <button class="modal-close" data-close="trade-screen">✕</button>
+    </div>
+    <div id="trade-body" class="trade-body"></div>
+    <div class="trade-foot">交易每日补货。给村民送点好东西，关系会更融洽。</div>
+  </div>
+</div>
+
+<!-- ========== 箱子 ========== -->
+<div id="chest-screen" class="modal hidden">
+  <div class="modal-panel chest-panel">
+    <div class="modal-head">
+      <h2>箱子</h2>
+      <button class="modal-close" data-close="chest-screen">✕</button>
+    </div>
+    <div class="chest-cols">
+      <div>
+        <h3>箱子（27 格）</h3>
+        <div id="chest-grid" class="item-grid chest-grid"></div>
+        <div class="chest-actions">
+          <button id="btn-chest-take" class="btn">全部取出</button>
+          <button id="btn-chest-put" class="btn">全部存入</button>
+        </div>
+      </div>
+      <div>
+        <h3>背包</h3>
+        <div id="chest-inv-grid" class="item-grid chest-grid"></div>
+      </div>
+    </div>
+    <div class="chest-foot">点击箱子里的物品取出，点击背包物品存入。</div>
+  </div>
+</div>
+
+<!-- ========== 熔炉 ========== -->
+<div id="furnace-screen" class="modal hidden">
+  <div class="modal-panel furnace-panel">
+    <div class="modal-head">
+      <h2>熔炉</h2>
+      <button class="modal-close" data-close="furnace-screen">✕</button>
+    </div>
+    <div class="furnace-body">
+      <div class="furnace-left">
+        <div class="furnace-row">
+          <div class="slot-wrap"><span>原料</span><div id="furnace-input" class="item-cell big"></div></div>
+          <div class="furnace-arrow">→</div>
+          <div class="slot-wrap"><span>产物</span><div id="furnace-output" class="item-cell big"></div></div>
+        </div>
+        <div class="furnace-fuel-row">
+          <div class="slot-wrap"><span>燃料</span><div id="furnace-fuel" class="item-cell"></div></div>
+          <div class="burn-wrap"><div class="burn-bar"><div id="burn-fill"></div></div><small>燃烧</small></div>
+        </div>
+        <div class="smelt-bar"><div id="smelt-fill"></div></div>
+        <div class="furnace-tip">铁矿石 → 铁锭 · 沙子 → 玻璃 · 生肉 → 熟肉<br>燃料：煤炭 / 木板 / 原木 / 木棍</div>
+      </div>
+      <div class="furnace-right">
+        <h3>背包</h3>
+        <div id="furnace-inv-grid" class="item-grid chest-grid"></div>
+      </div>
+    </div>
+    <div class="chest-foot">点击背包里的原料/燃料放入熔炉，点击熔炉里的物品取回。</div>
+  </div>
+</div>
+
+<!-- ========== 任务 / 成就 ========== -->
+<div id="quest-screen" class="modal hidden">
+  <div class="modal-panel quest-panel">
+    <div class="modal-head">
+      <h2>任务与成就</h2>
+      <button class="modal-close" data-close="quest-screen">✕</button>
+    </div>
+    <div class="quest-rep" id="quest-rep">村民好感 50 · 友好</div>
+    <div id="quest-list" class="quest-list"></div>
+    <div class="chest-foot">按 J 打开或关闭任务面板；完成任务会立刻发放奖励并自动存档。</div>
+  </div>
+</div>
+
+<!-- ========== 帮助 ========== -->
+<div id="help-screen" class="modal hidden">
+  <div class="modal-panel help-panel">
+    <div class="modal-head">
+      <h2>世界规则与操作</h2>
+      <button class="modal-close" data-close="help-screen">✕</button>
+    </div>
+    <div class="help-cols">
+      <div>
+        <h3>操作</h3>
+        <ul>
+          <li><b>WASD</b> 移动 · <b>空格</b> 跳跃 · <b>Shift</b> 疾跑</li>
+          <li><b>鼠标左键</b> 挖掘 / 攻击 / 收割</li>
+          <li><b>鼠标右键</b> 放置 / 与村民交易 / 进食</li>
+          <li><b>1-9 / 滚轮</b> 切换快捷栏 · <b>中键</b> 取方块 · <b>E</b> 背包合成</li>
+          <li><b>Tab</b> 小地图 · <b>J</b> 任务成就 · <b>F3</b> 调试 · <b>Esc</b> 暂停</li>
+          <li><b>右键箱子 / 熔炉</b> 打开存储与熔炼界面</li>
+          <li><b>夜晚右键床</b> 睡到清晨（附近有僵尸时无法入睡）</li>
+          <li><b>触屏设备</b>：自动出现左侧摇杆和右侧视角区，右下角是跳/挖/用/背包/疾跑</li>
+        </ul>
+        <h3>生存</h3>
+        <ul>
+          <li>生命与饥饿：饥饿值见底会掉血，吃饱后生命会缓慢恢复。</li>
+          <li>摔落、溺水、夜晚的僵尸都会让你受伤。</li>
+          <li>吃苹果、面包、生肉可以恢复饥饿，熔炉烤过的熟肉回复更多。</li>
+          <li>夜里睡一觉可以跳过黑夜、恢复少量生命，并进入新的一天。</li>
+        </ul>
+      </div>
+      <div>
+        <h3>自然规则</h3>
+        <ul>
+          <li>昼夜循环：一整天约 12 分钟，夜晚僵尸会在暗处出现；雨天火会被浇灭。</li>
+          <li>天气：晴 → 雨 → 雷雨随机变化，雷雨会点燃树木。</li>
+          <li>草木：小麦需要水与光照生长，树苗会慢慢长成大树。</li>
+          <li>草地会蔓延，被压住的草会退化成泥土；水会向低处流。</li>
+          <li>羊会吃草，僵尸会被火光和村庄驱散。</li>
+        </ul>
+        <h3>建造与生产</h3>
+        <ul>
+          <li>用锄头右键草地/泥土可以开垦耕地，再右键种下小麦种子。</li>
+          <li>箱子有 27 格，右键打开，退出时会记住里面的东西；拆掉箱子会把物品还给你。</li>
+          <li>熔炉：铁矿石→铁锭、沙子→玻璃、生肉→熟肉；燃料可用煤炭、木板、原木、木棍。</li>
+          <li>给牛羊猪喂小麦、给鸡喂种子，可以看到它们头顶冒爱心并生下小动物。</li>
+        </ul>
+        <h3>村民</h3>
+        <ul>
+          <li>村民有作息：白天工作、傍晚闲聊、夜晚回家睡觉。</li>
+          <li>右键村民可交易，用小麦、煤炭、羊毛换取绿宝石。</li>
+          <li>攻击村民会降低好感，他们也会逃跑和呼救；好感越高，交易越便宜。</li>
+          <li>在有足够床铺的村庄，村民会慢慢繁衍；动物也需要两只同类靠近才会生宝宝。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 设置 ========== -->
+<div id="settings-screen" class="modal hidden">
+  <div class="modal-panel settings-panel">
+    <div class="modal-head">
+      <h2>设置</h2>
+      <button class="modal-close" data-close="settings-screen">✕</button>
+    </div>
+    <div class="settings-body">
+      <label class="setting-row">
+        <span class="setting-name">鼠标灵敏度</span>
+        <input id="set-sensitivity" type="range" min="0.0008" max="0.006" step="0.0001">
+        <b id="set-sensitivity-val" class="setting-val">--</b>
+      </label>
+      <label class="setting-row">
+        <span class="setting-name">主音量</span>
+        <input id="set-volume" type="range" min="0" max="1" step="0.05">
+        <b id="set-volume-val" class="setting-val">--</b>
+      </label>
+      <label class="setting-row">
+        <span class="setting-name">视距</span>
+        <input id="set-renderdist" type="range" min="2" max="8" step="1">
+        <b id="set-renderdist-val" class="setting-val">--</b>
+      </label>
+      <label class="setting-row">
+        <span class="setting-name">视野 FOV</span>
+        <input id="set-fov" type="range" min="60" max="100" step="1">
+        <b id="set-fov-val" class="setting-val">--</b>
+      </label>
+      <label class="setting-row check">
+        <input id="set-shadows" type="checkbox">
+        <span>实体影子</span>
+        <small>关闭可提升低配设备帧率</small>
+      </label>
+      <label class="setting-row check">
+        <input id="set-minimap" type="checkbox">
+        <span>显示小地图</span>
+        <small>Tab 可快速开关</small>
+      </label>
+      <div class="settings-tip">设置会自动保存到本机。按 Esc 返回。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 死亡 ========== -->
+<div id="death-screen" class="hidden">
+  <div class="death-overlay"></div>
+  <div class="death-panel">
+    <h1>你 死 了</h1>
+    <p id="death-msg">你被黑暗吞没了。</p>
+    <button id="btn-respawn" class="btn primary">在村庄重生</button>
+  </div>
+</div>
+
+<!-- ========== 睡眠 ========== -->
+<div id="sleep-overlay" class="hidden">
+  <div class="sleep-text">你躺下睡着了…</div>
+</div>
+
+<!-- ========== 触屏控制 ========== -->
+<div id="touch-controls" class="hidden">
+  <div id="touch-look"></div>
+  <div id="touch-stick"><div id="touch-knob"></div></div>
+  <div class="touch-actions">
+    <button class="t-btn" data-touch="run">跑</button>
+    <button class="t-btn" data-touch="bag">包</button>
+    <button class="t-btn" data-touch="use">用</button>
+    <button class="t-btn big" data-touch="attack">挖</button>
+    <button class="t-btn big" data-touch="jump">跳</button>
+  </div>
+</div>
+
+<!-- ========== 加载 ========== -->
+<div id="loading" class="hidden">
+  <div class="loading-box">
+    <div class="loading-title">正在生成世界…</div>
+    <div class="loading-bar"><div id="loading-fill"></div></div>
+    <div id="loading-text">挖掘泥土，种下第一棵树</div>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="js/textures.js"></script>
+<script src="js/blocks.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/world.js"></script>
+<script src="js/pathfinder.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/villagers.js"></script>
+<script src="js/nature.js"></script>
+<script src="js/player.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/quests.js"></script>
+<script src="js/game.js"></script>
+<script src="js/touch.js"></script>
+</body>
+</html>

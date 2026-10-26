@@ -1,0 +1,19 @@
+{
+  "name": "block-world",
+  "version": "1.0.0",
+  "private": true,
+  "description": "方块世界：浏览器里直接玩的像素方块沙盒（NPC 村民、交易与自然规则）",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node tests/build-single.mjs",
+    "test": "node tests/functional2.mjs && node tests/ui-flow.mjs && node tests/acceptance.mjs && node tests/pack1.mjs && node tests/pack2.mjs && node tests/pack3.mjs && node tests/pack4.mjs && node tests/audio-env.mjs",
+    "shots": "node tests/final-shots.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1"
+  }
+}

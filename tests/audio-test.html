@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>MC.audio 扩展自测</title>
+</head>
+<body>
+<button id="btn-init">初始化音频</button>
+<script src="../js/audio.js"></script>
+<script>
+window.__AUDIO_READY = !!(window.MC && window.MC.audio);
+document.getElementById('btn-init').addEventListener('click', function () {
+  try { MC.audio.init(); } catch (e) { /* 测试脚本会捕获 pageerror */ }
+});
+</script>
+</body>
+</html>
