@@ -14,6 +14,7 @@ const page = await browser.newPage();
 const errs = [];
 page.on('pageerror', e => errs.push('pageerror: ' + e.message));
 page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+page.on('response', r => { if (r.status() >= 400) errs.push('http ' + r.status() + ' ' + r.url()); });
 const R = { url };
 try {
   const resp = await page.goto(url, { waitUntil: 'load', timeout: 60000 });
